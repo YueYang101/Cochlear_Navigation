@@ -1,0 +1,38 @@
+FUSION 360 IMPORT INSTRUCTIONS
+==============================
+
+Method 1: Using Built-in ImportSplineCSV Script
+-----------------------------------------------
+1. Open Fusion 360
+2. Go to: UTILITIES tab > Add-Ins > Scripts and Add-Ins (or press Shift+S)
+3. Find "ImportSplineCSV" in the scripts list
+4. Click "Run"
+5. Select 'cochlea_centerline.csv'
+6. The centerline will be imported as a smooth 3D spline
+
+Method 2: Using Insert Menu (if available)
+------------------------------------------
+1. Open Fusion 360
+2. Go to: INSERT > Insert CSV Points
+3. Select 'cochlea_centerline.csv'
+4. Choose "Spline" as the style
+5. Click OK
+
+Method 3: Manual Creation
+-------------------------
+1. Create a new sketch
+2. Use "Create > Spline > Fit Point Spline"
+3. Import the CSV points manually or use a script
+
+For Cross Sections:
+-------------------
+- Use 'cochlea_cross_sections.csv'
+- Each blank line separates a different cross section
+- Import using the same methods above
+
+Tips:
+-----
+- The centerline has been optimized to ~100 points for smooth import
+- All coordinates are in millimeters
+- The spline starts at the base and spirals to the apex
+- Use the centerline for loft/sweep operations

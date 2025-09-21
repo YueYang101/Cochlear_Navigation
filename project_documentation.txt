@@ -1,0 +1,1954 @@
+================================================================================
+PROJECT DOCUMENTATION
+================================================================================
+Generated on: 2025-09-14 22:15:43
+Root Directory: /Users/yang/Library/CloudStorage/OneDrive-Personal/Education/PhD Appliaction/Home-Assignment/Code
+================================================================================
+
+FILE STRUCTURE:
+----------------------------------------
+(* indicates Python files with content included)
+
+/
+├── cochlea_output/
+│   ├── centerline.csv (2.8 KB)
+│   ├── cochlea_parameters.json (463.0 B)
+│   ├── cross_section_1.csv (1.7 KB)
+│   ├── cross_section_2.csv (1.8 KB)
+│   ├── cross_section_3.csv (1.7 KB)
+│   ├── cross_section_4.csv (1.7 KB)
+│   └── cross_section_5.csv (1.8 KB)
+├── fusion360_import/
+│   ├── cochlea_centerline.csv (2.8 KB)
+│   ├── cochlea_cross_sections.csv (4.8 KB)
+│   └── FUSION360_INSTRUCTIONS.txt (1.2 KB)
+├── Fusion360_scripts/
+│   ├── cochlear import/
+│   │   └── cochlear import.py (640.0 B) *
+│   ├── Cochlear_Import/
+│   │   └── Cochlear_Import.py (640.0 B) *
+│   └── ImportCochleaCrossSections.py (14.5 KB) *
+├── cochlea_export.py (7.1 KB) *
+├── cochlea_model.py (6.8 KB) *
+├── cochlea_parameters.py (5.2 KB) *
+├── cochlea_visualization.py (11.1 KB) *
+├── file_documenter.py (14.5 KB) *
+├── main.py (4.5 KB) *
+├── project_documentation.txt (79.5 KB)
+└── Simple_Cochlea_Export.py (3.5 KB) *
+
+================================================================================
+PYTHON FILE CONTENTS:
+================================================================================
+
+--------------------------------------------------------------------------------
+FILE: Simple_Cochlea_Export.py
+SIZE: 3.5 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Simple Cochlea Export Script
+   3 | Generates CSV files compatible with Fusion 360's ImportSplineCSV script
+   4 | """
+   5 | 
+   6 | import numpy as np
+   7 | from pathlib import Path
+   8 | from cochlea_model import CochleaModel
+   9 | 
+  10 | def export_for_fusion360_simple(output_dir='fusion360_import'):
+  11 |     """Generate simple CSV files for Fusion 360 import."""
+  12 |     
+  13 |     # Create output directory
+  14 |     Path(output_dir).mkdir(exist_ok=True)
+  15 |     
+  16 |     # Create model
+  17 |     model = CochleaModel(mode='mean')
+  18 |     print(f"Created cochlea model with {model.n_turns:.2f} turns")
+  19 |     
+  20 |     # Generate geometry with fine resolution
+  21 |     geometry = model.generate_geometry(resolution=0.1)
+  22 |     
+  23 |     # Export centerline as CSV (X,Y,Z format with no headers)
+  24 |     print("\nExporting centerline...")
+  25 |     centerline_file = Path(output_dir) / 'cochlea_centerline.csv'
+  26 |     
+  27 |     # Sample points evenly along the centerline
+  28 |     n_points = 100  # Fusion 360 works well with ~100 points
+  29 |     indices = np.linspace(0, len(geometry['centerline'][0])-1, n_points, dtype=int)
+  30 |     
+  31 |     with open(centerline_file, 'w') as f:
+  32 |         for i in indices:
+  33 |             x = geometry['centerline'][0, i]
+  34 |             y = geometry['centerline'][1, i]
+  35 |             z = geometry['centerline'][2, i]
+  36 |             f.write(f"{x:.6f},{y:.6f},{z:.6f}\n")
+  37 |     
+  38 |     print(f"Saved: {centerline_file}")
+  39 |     
+  40 |     # Generate and export cross sections
+  41 |     print("\nExporting cross sections...")
+  42 |     cross_sections_file = Path(output_dir) / 'cochlea_cross_sections.csv'
+  43 |     cross_sections = model.generate_cross_sections(geometry, num_sections=10)
+  44 |     
+  45 |     with open(cross_sections_file, 'w') as f:
+  46 |         for i, section in enumerate(cross_sections):
+  47 |             if i > 0:
+  48 |                 f.write('\n')  # Blank line between sections
+  49 |             for point in section['points']:
+  50 |                 f.write(f"{point[0]:.6f},{point[1]:.6f},{point[2]:.6f}\n")
+  51 |     
+  52 |     print(f"Saved: {cross_sections_file}")
+  53 |     
+  54 |     # Create instructions file
+  55 |     instructions_file = Path(output_dir) / 'FUSION360_INSTRUCTIONS.txt'
+  56 |     with open(instructions_file, 'w') as f:
+  57 |         f.write("""FUSION 360 IMPORT INSTRUCTIONS
+  58 | ==============================
+  59 | 
+  60 | Method 1: Using Built-in ImportSplineCSV Script
+  61 | -----------------------------------------------
+  62 | 1. Open Fusion 360
+  63 | 2. Go to: UTILITIES tab > Add-Ins > Scripts and Add-Ins (or press Shift+S)
+  64 | 3. Find "ImportSplineCSV" in the scripts list
+  65 | 4. Click "Run"
+  66 | 5. Select 'cochlea_centerline.csv'
+  67 | 6. The centerline will be imported as a smooth 3D spline
+  68 | 
+  69 | Method 2: Using Insert Menu (if available)
+  70 | ------------------------------------------
+  71 | 1. Open Fusion 360
+  72 | 2. Go to: INSERT > Insert CSV Points
+  73 | 3. Select 'cochlea_centerline.csv'
+  74 | 4. Choose "Spline" as the style
+  75 | 5. Click OK
+  76 | 
+  77 | Method 3: Manual Creation
+  78 | -------------------------
+  79 | 1. Create a new sketch
+  80 | 2. Use "Create > Spline > Fit Point Spline"
+  81 | 3. Import the CSV points manually or use a script
+  82 | 
+  83 | For Cross Sections:
+  84 | -------------------
+  85 | - Use 'cochlea_cross_sections.csv'
+  86 | - Each blank line separates a different cross section
+  87 | - Import using the same methods above
+  88 | 
+  89 | Tips:
+  90 | -----
+  91 | - The centerline has been optimized to ~100 points for smooth import
+  92 | - All coordinates are in millimeters
+  93 | - The spline starts at the base and spirals to the apex
+  94 | - Use the centerline for loft/sweep operations
+  95 | """)
+  96 |     
+  97 |     print(f"\nSaved: {instructions_file}")
+  98 |     print("\n" + "="*50)
+  99 |     print("Export complete!")
+ 100 |     print(f"Files saved to: {Path(output_dir).absolute()}")
+ 101 |     print("\nFollow the instructions in FUSION360_INSTRUCTIONS.txt")
+ 102 |     print("="*50)
+ 103 | 
+ 104 | if __name__ == "__main__":
+ 105 |     export_for_fusion360_simple()
+
+--------------------------------------------------------------------------------
+FILE: cochlea_export.py
+SIZE: 7.1 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Cochlea Export Module - Simplified Version
+   3 | Exports only full circle cross sections for easy import with Fusion 360 ImportSplineCSV
+   4 | """
+   5 | 
+   6 | import numpy as np
+   7 | from pathlib import Path
+   8 | import json
+   9 | import shutil
+  10 | 
+  11 | class CochleaExporter:
+  12 |     """Handles export of cochlea models to CSV format."""
+  13 |     
+  14 |     def __init__(self, model):
+  15 |         """Initialize exporter with a cochlea model."""
+  16 |         self.model = model
+  17 |         
+  18 |     def export_all(self, export_dir='cochlea_output', replace_existing=True):
+  19 |         """
+  20 |         Export centerline and full circle cross sections.
+  21 |         
+  22 |         Args:
+  23 |             export_dir: Directory for exported files
+  24 |             replace_existing: If True, remove existing directory before export
+  25 |         """
+  26 |         export_path = Path(export_dir)
+  27 |         
+  28 |         # Handle existing directory
+  29 |         if export_path.exists() and replace_existing:
+  30 |             shutil.rmtree(export_path)
+  31 |             print(f"Removed existing directory: {export_path}")
+  32 |         
+  33 |         export_path.mkdir(exist_ok=True)
+  34 |         
+  35 |         # Generate geometry with high resolution
+  36 |         geometry = self.model.generate_geometry(resolution=0.05)
+  37 |         
+  38 |         # Export files
+  39 |         results = {}
+  40 |         results['csv'] = self.export_csv(export_dir, geometry)
+  41 |         results['json'] = self.export_json(export_dir)
+  42 |         
+  43 |         self._print_export_summary(export_dir, results)
+  44 |         return results
+  45 |     
+  46 |     def export_csv(self, export_dir, geometry=None):
+  47 |         """Export centerline and cross-section points as CSV files."""
+  48 |         export_path = Path(export_dir)
+  49 |         
+  50 |         if geometry is None:
+  51 |             geometry = self.model.generate_geometry(resolution=0.05)
+  52 |         
+  53 |         # Export centerline (convert mm to cm for Fusion 360)
+  54 |         centerline_data = []
+  55 |         n_points = 100  # Optimal for smooth curves
+  56 |         indices = np.linspace(0, len(geometry['centerline'][0])-1, n_points, dtype=int)
+  57 |         
+  58 |         for i in indices:
+  59 |             x = geometry['centerline'][0, i] * 0.1  # mm to cm
+  60 |             y = geometry['centerline'][1, i] * 0.1
+  61 |             z = geometry['centerline'][2, i] * 0.1
+  62 |             centerline_data.append(f"{x:.6f},{y:.6f},{z:.6f}")
+  63 |         
+  64 |         centerline_file = export_path / 'centerline.csv'
+  65 |         with open(centerline_file, 'w') as f:
+  66 |             f.write('\n'.join(centerline_data))
+  67 |         
+  68 |         # Generate 5 cross sections
+  69 |         num_sections = 5
+  70 |         section_positions = np.linspace(0, 1, num_sections)
+  71 |         cross_section_files = []
+  72 |         
+  73 |         for section_idx, position in enumerate(section_positions):
+  74 |             # Get position along centerline
+  75 |             idx = int(position * (len(geometry['phi']) - 1))
+  76 |             phi = geometry['phi'][idx]
+  77 |             
+  78 |             # Center point
+  79 |             center = np.array([
+  80 |                 geometry['centerline'][0, idx],
+  81 |                 geometry['centerline'][1, idx],
+  82 |                 geometry['centerline'][2, idx]
+  83 |             ])
+  84 |             
+  85 |             # Calculate radius (decreases from base to apex)
+  86 |             radius = (self.model.c_length - phi) / self.model.c_length * 0.5 + 0.6
+  87 |             
+  88 |             # Calculate orientation vectors
+  89 |             if idx < len(geometry['phi']) - 1:
+  90 |                 next_idx = idx + 1
+  91 |             else:
+  92 |                 next_idx = idx
+  93 |                 idx = idx - 1
+  94 |             
+  95 |             tangent = np.array([
+  96 |                 geometry['centerline'][0, next_idx] - geometry['centerline'][0, idx],
+  97 |                 geometry['centerline'][1, next_idx] - geometry['centerline'][1, idx],
+  98 |                 geometry['centerline'][2, next_idx] - geometry['centerline'][2, idx]
+  99 |             ])
+ 100 |             tangent = tangent / np.linalg.norm(tangent)
+ 101 |             
+ 102 |             # Create perpendicular vectors
+ 103 |             if abs(tangent[2]) < 0.9:
+ 104 |                 perp1 = np.cross([0, 0, 1], tangent)
+ 105 |             else:
+ 106 |                 perp1 = np.cross([1, 0, 0], tangent)
+ 107 |             perp1 = perp1 / np.linalg.norm(perp1)
+ 108 |             perp2 = np.cross(tangent, perp1)
+ 109 |             perp2 = perp2 / np.linalg.norm(perp2)
+ 110 |             
+ 111 |             # Generate filename
+ 112 |             filename = f'cross_section_{section_idx+1}.csv'
+ 113 |             cross_section_file = export_path / filename
+ 114 |             cross_section_files.append(str(cross_section_file))
+ 115 |             
+ 116 |             # Write full circle cross section
+ 117 |             with open(cross_section_file, 'w') as f:
+ 118 |                 n_circle_points = 60  # Smooth circle
+ 119 |                 angles = np.linspace(0, 2*np.pi, n_circle_points+1)  # Include endpoint
+ 120 |                 
+ 121 |                 for angle in angles:
+ 122 |                     local_x = radius * np.cos(angle)
+ 123 |                     local_y = radius * np.sin(angle)
+ 124 |                     point = center + local_x * perp1 + local_y * perp2
+ 125 |                     # Convert to cm
+ 126 |                     f.write(f"{point[0]*0.1:.6f},{point[1]*0.1:.6f},{point[2]*0.1:.6f}\n")
+ 127 |         
+ 128 |         return {
+ 129 |             'centerline': str(centerline_file), 
+ 130 |             'cross_sections': cross_section_files
+ 131 |         }
+ 132 |     
+ 133 |     def export_json(self, export_dir):
+ 134 |         """Export model parameters and metadata as JSON."""
+ 135 |         export_path = Path(export_dir)
+ 136 |         
+ 137 |         data = {
+ 138 |             'parameters': {
+ 139 |                 'A1': float(self.model.A[0]),
+ 140 |                 'B1': float(self.model.A[1]),
+ 141 |                 'A2': float(self.model.A[2]),
+ 142 |                 'B2': float(self.model.A[3])
+ 143 |             },
+ 144 |             'derived': {
+ 145 |                 'turns': float(self.model.n_turns),
+ 146 |                 'length_with_height': float(self.model.calculate_length(True)),
+ 147 |                 'length_without_height': float(self.model.calculate_length(False))
+ 148 |             },
+ 149 |             'export_info': {
+ 150 |                 'centerline_points': 100,
+ 151 |                 'cross_sections': 5,
+ 152 |                 'cross_section_positions': [0.0, 0.25, 0.5, 0.75, 1.0],
+ 153 |                 'points_per_circle': 61,
+ 154 |                 'units': 'centimeters'
+ 155 |             }
+ 156 |         }
+ 157 |         
+ 158 |         json_file = export_path / 'cochlea_parameters.json'
+ 159 |         with open(json_file, 'w') as f:
+ 160 |             json.dump(data, f, indent=2)
+ 161 |         
+ 162 |         return str(json_file)
+ 163 |     
+ 164 |     def _print_export_summary(self, export_dir, results):
+ 165 |         """Print summary of exported files."""
+ 166 |         print(f"\n{'='*60}")
+ 167 |         print(f"Export Complete - Files saved to: {Path(export_dir).absolute()}")
+ 168 |         print(f"{'='*60}")
+ 169 |         
+ 170 |         if 'csv' in results:
+ 171 |             print("\nCSV Files:")
+ 172 |             print(f"  - Centerline: centerline.csv")
+ 173 |             print(f"  - Cross sections: cross_section_1.csv to cross_section_5.csv")
+ 174 |         
+ 175 |         if 'json' in results:
+ 176 |             print(f"\nParameters: cochlea_parameters.json")
+ 177 |         
+ 178 |         print(f"\n{'='*60}")
+ 179 |         print("\nImport Instructions for Fusion 360:")
+ 180 |         print("1. Open Fusion 360 and create a new design")
+ 181 |         print("2. Go to UTILITIES > Scripts and Add-Ins > ImportSplineCSV")
+ 182 |         print("3. Select and import each CSV file:")
+ 183 |         print("   - First import centerline.csv")
+ 184 |         print("   - Then import each cross_section_N.csv")
+ 185 |         print("4. All curves will be imported as smooth splines")
+ 186 |         print("5. Use CREATE > Loft to create the 3D shape")
+ 187 |         print(f"{'='*60}\n")
+
+--------------------------------------------------------------------------------
+FILE: cochlea_model.py
+SIZE: 6.8 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Cochlea Model Module
+   3 | Core mathematical equations and geometry generation for cochlea modeling
+   4 | """
+   5 | 
+   6 | import numpy as np
+   7 | from scipy.integrate import quad
+   8 | from cochlea_parameters import CochleaParameters
+   9 | 
+  10 | 
+  11 | class CochleaModel:
+  12 |     """Core cochlea mathematical model."""
+  13 |     
+  14 |     def __init__(self, parameters=None, mode='mean'):
+  15 |         """
+  16 |         Initialize cochlea model with parameters.
+  17 |         
+  18 |         Args:
+  19 |             parameters: 4-element array [A1, B1, A2, B2] or None
+  20 |             mode: 'mean' or 'random' if parameters is None
+  21 |         """
+  22 |         self.param_manager = CochleaParameters()
+  23 |         self.coefs = self.param_manager.coefs
+  24 |         
+  25 |         if parameters is None:
+  26 |             self.A = self.param_manager.generate_parameters(mode)
+  27 |             print(f"{mode.capitalize()} cochlea values selected")
+  28 |         else:
+  29 |             self.param_manager.validate_parameters(parameters)
+  30 |             self.A = np.array(parameters)
+  31 |         
+  32 |         # Calculate derived parameters
+  33 |         self.c_length = self._turn_number_estimation() * 2 * np.pi
+  34 |         self.n_turns = self.c_length / (2 * np.pi)
+  35 |         
+  36 |         print(f"Parameters: A1 = {self.A[0]:.3f}, B1 = {self.A[1]:.3f}, "
+  37 |               f"A2 = {self.A[2]:.3f}, B2 = {self.A[3]:.3f}")
+  38 |         print(f"Estimated number of turns: {self.n_turns:.3f}")
+  39 |     
+  40 |     def _turn_number_estimation(self):
+  41 |         """Estimate number of turns."""
+  42 |         return np.dot(np.append(1, self.A), self.coefs['turns']) / 360
+  43 |     
+  44 |     def _radius_modiolus_poly(self, phi):
+  45 |         """Calculate radius from modiolus at angle phi."""
+  46 |         coeffs = []
+  47 |         for i in range(4):
+  48 |             coeffs.append(np.dot(np.append(1, self.A), self.coefs['modiolus'][:, i]))
+  49 |         return np.polyval(coeffs[::-1], phi)
+  50 |     
+  51 |     def _height_poly(self, phi):
+  52 |         """Calculate height at angle phi."""
+  53 |         coeffs = []
+  54 |         for i in range(5):
+  55 |             coeffs.append(np.dot(np.append(1, self.A), self.coefs['height'][:, i]))
+  56 |         return np.polyval(coeffs[::-1], phi)
+  57 |     
+  58 |     def get_radius_coeffs(self):
+  59 |         """Get polynomial coefficients for radius."""
+  60 |         coeffs = []
+  61 |         for i in range(4):
+  62 |             coeffs.append(np.dot(np.append(1, self.A), self.coefs['modiolus'][:, i]))
+  63 |         return coeffs[::-1]
+  64 |     
+  65 |     def get_height_coeffs(self):
+  66 |         """Get polynomial coefficients for height."""
+  67 |         coeffs = []
+  68 |         for i in range(5):
+  69 |             coeffs.append(np.dot(np.append(1, self.A), self.coefs['height'][:, i]))
+  70 |         return coeffs[::-1]
+  71 |     
+  72 |     def calculate_length(self, with_height=True):
+  73 |         """Calculate the length of the cochlea spiral."""
+  74 |         def integrand(z):
+  75 |             r = self._radius_modiolus_poly(z)
+  76 |             dr_dz = np.polyder(np.poly1d(self.get_radius_coeffs()))(z)
+  77 |             
+  78 |             x_deriv = dr_dz * np.cos(z) - r * np.sin(z)
+  79 |             y_deriv = dr_dz * np.sin(z) + r * np.cos(z)
+  80 |             
+  81 |             if with_height:
+  82 |                 dh_dz = np.polyder(np.poly1d(self.get_height_coeffs()))(z)
+  83 |                 return np.sqrt(x_deriv**2 + y_deriv**2 + dh_dz**2)
+  84 |             else:
+  85 |                 return np.sqrt(x_deriv**2 + y_deriv**2)
+  86 |         
+  87 |         length, _ = quad(integrand, 0, self.c_length)
+  88 |         return length
+  89 |     
+  90 |     def generate_geometry(self, resolution=0.1):
+  91 |         """
+  92 |         Generate the 3D geometry of the cochlea.
+  93 |         
+  94 |         Args:
+  95 |             resolution: Angular resolution in radians
+  96 |             
+  97 |         Returns:
+  98 |             dict with centerline, scala surface, phi angles, and turns
+  99 |         """
+ 100 |         phi = np.arange(0, self.c_length, resolution)
+ 101 |         
+ 102 |         # Calculate centerline
+ 103 |         r_modiolus = self._radius_modiolus_poly(phi)
+ 104 |         centerline = np.array([
+ 105 |             r_modiolus * np.cos(phi),
+ 106 |             r_modiolus * np.sin(phi),
+ 107 |             self._height_poly(phi)
+ 108 |         ])
+ 109 |         
+ 110 |         # Generate scala surface
+ 111 |         v = np.arange(0, 2*np.pi, resolution)
+ 112 |         scala_x = np.zeros((len(v), len(phi)))
+ 113 |         scala_y = np.zeros((len(v), len(phi)))
+ 114 |         scala_z = np.zeros((len(v), len(phi)))
+ 115 |         
+ 116 |         for i, p in enumerate(phi):
+ 117 |             # Scala radius decreases from base to apex
+ 118 |             r_scala = (self.c_length - p) / self.c_length * 0.5 + 0.6
+ 119 |             
+ 120 |             for j, angle in enumerate(v):
+ 121 |                 # Generate circular cross-section
+ 122 |                 local_r = r_modiolus[i] + r_scala * (np.cos(angle) - 1)
+ 123 |                 scala_x[j, i] = local_r * np.cos(p)
+ 124 |                 scala_y[j, i] = local_r * np.sin(p)
+ 125 |                 scala_z[j, i] = r_scala * np.sin(angle) + centerline[2, i]
+ 126 |         
+ 127 |         return {
+ 128 |             'centerline': centerline,
+ 129 |             'scala': {'x': scala_x, 'y': scala_y, 'z': scala_z},
+ 130 |             'phi': phi,
+ 131 |             'turns': phi / (2 * np.pi),
+ 132 |             'r_modiolus': r_modiolus
+ 133 |         }
+ 134 |     
+ 135 |     def generate_cross_sections(self, geometry=None, num_sections=10):
+ 136 |         """Generate cross sections for the cochlea."""
+ 137 |         if geometry is None:
+ 138 |             geometry = self.generate_geometry(resolution=5)
+ 139 |             
+ 140 |         half_idx = len(geometry['phi']) // 2
+ 141 |         section_indices = np.linspace(0, half_idx-1, num_sections, dtype=int)
+ 142 |         
+ 143 |         cross_sections = []
+ 144 |         
+ 145 |         for idx in section_indices:
+ 146 |             phi = geometry['phi'][idx]
+ 147 |             center = geometry['centerline'][:, idx]
+ 148 |             radius = (self.c_length - phi) / self.c_length * 0.5 + 0.6
+ 149 |             
+ 150 |             # Generate circular cross section
+ 151 |             n_points = 16  # Points for smooth curves
+ 152 |             angles = np.linspace(0, 2*np.pi, n_points+1)
+ 153 |             
+ 154 |             section = {
+ 155 |                 'center': center,
+ 156 |                 'radius': radius,
+ 157 |                 'angle': phi * 180 / np.pi,
+ 158 |                 'phi': phi,
+ 159 |                 'points': []
+ 160 |             }
+ 161 |             
+ 162 |             for angle in angles:
+ 163 |                 local_r = radius * (np.cos(angle) - 1)
+ 164 |                 local_h = radius * np.sin(angle)
+ 165 |                 
+ 166 |                 x = center[0] + local_r * np.cos(phi)
+ 167 |                 y = center[1] + local_r * np.sin(phi)
+ 168 |                 z = center[2] + local_h
+ 169 |                 
+ 170 |                 section['points'].append([x, y, z])
+ 171 |             
+ 172 |             cross_sections.append(section)
+ 173 |         
+ 174 |         return cross_sections
+ 175 |     
+ 176 |     def get_point_at_position(self, turn_fraction):
+ 177 |         """
+ 178 |         Get 3D coordinates at a specific position along the cochlea.
+ 179 |         
+ 180 |         Args:
+ 181 |             turn_fraction: Position as fraction of total turns (0-1)
+ 182 |             
+ 183 |         Returns:
+ 184 |             dict with position, radius, and height
+ 185 |         """
+ 186 |         phi = turn_fraction * self.c_length
+ 187 |         r = self._radius_modiolus_poly(phi)
+ 188 |         
+ 189 |         return {
+ 190 |             'position': [r * np.cos(phi), r * np.sin(phi), self._height_poly(phi)],
+ 191 |             'radius_modiolus': r,
+ 192 |             'height': self._height_poly(phi),
+ 193 |             'phi': phi,
+ 194 |             'turns': phi / (2 * np.pi)
+ 195 |         }
+
+--------------------------------------------------------------------------------
+FILE: cochlea_parameters.py
+SIZE: 5.2 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Cochlea Parameters Module
+   3 | Handles parameter generation and patient data for cochlea modeling
+   4 | """
+   5 | 
+   6 | import numpy as np
+   7 | 
+   8 | 
+   9 | class CochleaParameters:
+  10 |     """Manages cochlea parameters and coefficient matrices."""
+  11 |     
+  12 |     def __init__(self):
+  13 |         self.coefs = self._initialize_coefficients()
+  14 |     
+  15 |     def _initialize_coefficients(self):
+  16 |         """Initialize coefficient matrices for the cochlea model."""
+  17 |         coefs = {}
+  18 |         
+  19 |         coefs['height'] = np.array([
+  20 |             [-2.025562262381, 0.308684774745994, -0.0245970612199774, 0.00093743547596123, -6.49142944919421e-06],
+  21 |             [-0.483933701821246, 0.150263587271025, -0.0249700764778651, 0.00184112837255666, -4.68696577096306e-05],
+  22 |             [0.0936906993853392, 0.0485929242340616, -0.0111388827166082, 0.000852542615496957, -2.39666478178502e-05],
+  23 |             [0.437215616236419, -0.609467318753365, 0.147019129524084, -0.012345472153677, 0.000341806092537278],
+  24 |             [0.19884386428529, 0.0706538846984097, -0.0490269768729332, 0.00553612473205947, -0.000178036145575138]
+  25 |         ])
+  26 |         
+  27 |         coefs['modiolus'] = np.array([
+  28 |             [-0.0972007477234853, 0.0652777719428317, 0.00579010295961996, -0.000410053336041606],
+  29 |             [0.745407586062517, -0.297795950930632, 0.0353079060718429, -0.00125774660897636],
+  30 |             [0.349940654425921, -0.0488173880945223, 0.00235713329581525, -3.38189250648794e-05],
+  31 |             [0.0567728210841444, 0.115930983938798, -0.0170603835499829, 0.000605305012135639],
+  32 |             [-0.0613995454924607, 0.170502985259421, -0.0267552502171719, 0.00111572946871731]
+  33 |         ])
+  34 |         
+  35 |         coefs['turns'] = np.array([963.166310413576, 6.37772934525638, -26.9585473096045, 
+  36 |                                   -36.3953582023656, 66.9416454453684])
+  37 |         
+  38 |         return coefs
+  39 |     
+  40 |     def generate_parameters(self, mode='mean'):
+  41 |         """
+  42 |         Generate cochlea parameters based on specified type.
+  43 |         
+  44 |         Args:
+  45 |             mode: 'mean' for average values or 'random' for randomized values
+  46 |             
+  47 |         Returns:
+  48 |             numpy array with 4 parameters [A1, B1, A2, B2]
+  49 |         """
+  50 |         if mode == 'mean':
+  51 |             return np.array([5.97, 3.95, 3.26, 2.85])
+  52 |             
+  53 |         elif mode == 'random':
+  54 |             # Correlation matrix for realistic parameter relationships
+  55 |             correlation_matrix = np.array([
+  56 |                 [1.0, 0.53476, -0.12441, -0.07296],
+  57 |                 [0.53476, 1.0, 0.11668, -0.43748],
+  58 |                 [-0.12441, 0.11668, 1.0, 0.57846],
+  59 |                 [-0.07296, -0.43748, 0.57846, 1.0]
+  60 |             ])
+  61 |             
+  62 |             # Generate correlated random values
+  63 |             mean_vector = np.ones(4)
+  64 |             random_values = np.random.multivariate_normal(mean_vector, correlation_matrix)
+  65 |             
+  66 |             # Transform to proper distributions with realistic means and standard deviations
+  67 |             means = [5.97, 3.95, 3.26, 2.85]
+  68 |             stds = [0.36, 0.35, 0.28, 0.33]
+  69 |             
+  70 |             parameters = np.zeros(4)
+  71 |             for i in range(4):
+  72 |                 # Use inverse normal CDF to get proper distribution
+  73 |                 uniform_value = np.random.normal(0, 1)
+  74 |                 parameters[i] = np.random.normal(means[i], stds[i])
+  75 |             
+  76 |             return parameters
+  77 |         else:
+  78 |             raise ValueError("Mode must be 'mean' or 'random'")
+  79 |     
+  80 |     def validate_parameters(self, parameters):
+  81 |         """
+  82 |         Validate that parameters are within reasonable bounds.
+  83 |         
+  84 |         Args:
+  85 |             parameters: 4-element array [A1, B1, A2, B2]
+  86 |             
+  87 |         Returns:
+  88 |             bool: True if valid, raises ValueError if not
+  89 |         """
+  90 |         if len(parameters) != 4:
+  91 |             raise ValueError("Parameters must be a 4-element array")
+  92 |         
+  93 |         # Check reasonable bounds based on anatomical constraints
+  94 |         bounds = {
+  95 |             'A1': (4.0, 8.0),  # Base width
+  96 |             'B1': (2.5, 5.5),  # Secondary base measurement  
+  97 |             'A2': (2.0, 4.5),  # Mid-cochlea width
+  98 |             'B2': (1.5, 4.0)   # Apical measurement
+  99 |         }
+ 100 |         
+ 101 |         param_names = ['A1', 'B1', 'A2', 'B2']
+ 102 |         for i, (name, value) in enumerate(zip(param_names, parameters)):
+ 103 |             min_val, max_val = bounds[name]
+ 104 |             if not min_val <= value <= max_val:
+ 105 |                 raise ValueError(f"{name} = {value} is outside reasonable bounds [{min_val}, {max_val}]")
+ 106 |         
+ 107 |         return True
+ 108 |     
+ 109 |     def get_patient_parameters(self, patient_id=None):
+ 110 |         """
+ 111 |         Load patient-specific parameters if available.
+ 112 |         
+ 113 |         Args:
+ 114 |             patient_id: Patient identifier (for future database integration)
+ 115 |             
+ 116 |         Returns:
+ 117 |             numpy array with 4 parameters or None if not found
+ 118 |         """
+ 119 |         # Placeholder for future patient database integration
+ 120 |         # For now, returns None to indicate no patient data
+ 121 |         return None
+ 122 |     
+ 123 |     def save_parameters(self, parameters, filename):
+ 124 |         """Save parameters to file."""
+ 125 |         np.savetxt(filename, parameters, fmt='%.6f', 
+ 126 |                    header='A1, B1, A2, B2', delimiter=',', comments='# ')
+ 127 |     
+ 128 |     def load_parameters(self, filename):
+ 129 |         """Load parameters from file."""
+ 130 |         return np.loadtxt(filename, delimiter=',')
+
+--------------------------------------------------------------------------------
+FILE: cochlea_visualization.py
+SIZE: 11.1 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Cochlea Visualization Module
+   3 | Handles all plotting and visualization for cochlea models
+   4 | """
+   5 | 
+   6 | import numpy as np
+   7 | import matplotlib.pyplot as plt
+   8 | from mpl_toolkits.mplot3d import Axes3D
+   9 | import matplotlib.animation as animation
+  10 | 
+  11 | 
+  12 | class CochleaVisualizer:
+  13 |     """Handles visualization of cochlea models."""
+  14 |     
+  15 |     def __init__(self, model):
+  16 |         """
+  17 |         Initialize visualizer with a cochlea model.
+  18 |         
+  19 |         Args:
+  20 |             model: CochleaModel instance
+  21 |         """
+  22 |         self.model = model
+  23 |         
+  24 |     def plot_parameters(self, geometry=None):
+  25 |         """Plot parameter estimations and model characteristics."""
+  26 |         if geometry is None:
+  27 |             geometry = self.model.generate_geometry()
+  28 |         
+  29 |         fig = plt.figure(figsize=(12, 5))
+  30 |         
+  31 |         # Plot 1: Distance from Modiolus
+  32 |         ax1 = fig.add_subplot(1, 2, 1)
+  33 |         ax1.plot(geometry['turns'], geometry['r_modiolus'], 'b-', linewidth=2)
+  34 |         ax1.plot([0, 0.25, 0.5, 0.75], self.model.A, 'ro', markersize=8)
+  35 |         ax1.set_xlabel('Turns')
+  36 |         ax1.set_ylabel('Distance from Modiolus (mm)')
+  37 |         ax1.set_title('Radial Distance vs. Turns')
+  38 |         ax1.grid(True, alpha=0.3)
+  39 |         ax1.set_xlim(-0.25, np.ceil(geometry['turns'][-1]))
+  40 |         
+  41 |         # Plot 2: Height Profile
+  42 |         ax2 = fig.add_subplot(1, 2, 2)
+  43 |         height = self.model._height_poly(geometry['phi'])
+  44 |         ax2.plot(geometry['turns'], height, 'g-', linewidth=2)
+  45 |         ax2.set_xlabel('Turns')
+  46 |         ax2.set_ylabel('Height (mm)')
+  47 |         ax2.set_title('Height Profile')
+  48 |         ax2.grid(True, alpha=0.3)
+  49 |         ax2.set_xlim(-0.25, np.ceil(geometry['turns'][-1]))
+  50 |         
+  51 |         plt.tight_layout()
+  52 |         return fig
+  53 |     
+  54 |     def plot_3d_model(self, show_modiolus=True, show_scala=True, 
+  55 |                       show_centerline=True, view_angle=(15, 15)):
+  56 |         """
+  57 |         Create 3D visualization of the cochlea.
+  58 |         
+  59 |         Args:
+  60 |             show_modiolus: Display central axis
+  61 |             show_scala: Display scala surface
+  62 |             show_centerline: Display centerline curve
+  63 |             view_angle: Tuple of (elevation, azimuth) angles
+  64 |         """
+  65 |         geometry = self.model.generate_geometry()
+  66 |         
+  67 |         fig = plt.figure(figsize=(10, 10))
+  68 |         ax = fig.add_subplot(111, projection='3d')
+  69 |         
+  70 |         # Plot modiolus (central axis)
+  71 |         if show_modiolus:
+  72 |             z_min = geometry['centerline'][2, 0] - 1
+  73 |             z_max = geometry['centerline'][2, -1] + 1
+  74 |             ax.plot([0, 0], [0, 0], [z_min, z_max],
+  75 |                    color='gray', linewidth=5, alpha=0.6, label='Modiolus')
+  76 |         
+  77 |         # Plot scala surface
+  78 |         if show_scala:
+  79 |             surf = ax.plot_surface(geometry['scala']['x'], 
+  80 |                                  geometry['scala']['y'], 
+  81 |                                  geometry['scala']['z'],
+  82 |                                  alpha=0.3, cmap='winter', 
+  83 |                                  edgecolor='none', label='Scala')
+  84 |         
+  85 |         # Plot centerline
+  86 |         if show_centerline:
+  87 |             ax.plot(geometry['centerline'][0], 
+  88 |                    geometry['centerline'][1], 
+  89 |                    geometry['centerline'][2],
+  90 |                    'k-', linewidth=3, label='Centerline')
+  91 |         
+  92 |         # Set labels and title
+  93 |         ax.set_xlabel('X (mm)')
+  94 |         ax.set_ylabel('Y (mm)')
+  95 |         ax.set_zlabel('Z (mm)')
+  96 |         ax.set_title('3D Cochlea Model')
+  97 |         
+  98 |         # Set equal aspect ratio
+  99 |         max_range = np.array([
+ 100 |             geometry['centerline'][0].max() - geometry['centerline'][0].min(),
+ 101 |             geometry['centerline'][1].max() - geometry['centerline'][1].min(),
+ 102 |             geometry['centerline'][2].max() - geometry['centerline'][2].min()
+ 103 |         ]).max() / 2.0
+ 104 |         
+ 105 |         mid_x = (geometry['centerline'][0].max() + geometry['centerline'][0].min()) * 0.5
+ 106 |         mid_y = (geometry['centerline'][1].max() + geometry['centerline'][1].min()) * 0.5
+ 107 |         mid_z = (geometry['centerline'][2].max() + geometry['centerline'][2].min()) * 0.5
+ 108 |         
+ 109 |         ax.set_xlim(mid_x - max_range, mid_x + max_range)
+ 110 |         ax.set_ylim(mid_y - max_range, mid_y + max_range)
+ 111 |         ax.set_zlim(mid_z - max_range, mid_z + max_range)
+ 112 |         
+ 113 |         # Set viewing angle
+ 114 |         ax.view_init(elev=view_angle[0], azim=view_angle[1])
+ 115 |         
+ 116 |         # Add legend
+ 117 |         ax.legend()
+ 118 |         
+ 119 |         plt.tight_layout()
+ 120 |         return fig, ax
+ 121 |     
+ 122 |     def plot_cross_sections(self, cross_sections=None):
+ 123 |         """Plot cross-sectional views of the cochlea."""
+ 124 |         if cross_sections is None:
+ 125 |             cross_sections = self.model.generate_cross_sections()
+ 126 |         
+ 127 |         fig = plt.figure(figsize=(12, 8))
+ 128 |         
+ 129 |         # Plot all cross sections in 3D
+ 130 |         ax1 = fig.add_subplot(121, projection='3d')
+ 131 |         
+ 132 |         for i, section in enumerate(cross_sections):
+ 133 |             points = np.array(section['points'])
+ 134 |             ax1.plot(points[:, 0], points[:, 1], points[:, 2], 
+ 135 |                     'b-', linewidth=2, alpha=0.7)
+ 136 |             ax1.scatter(*section['center'], c='r', s=50)
+ 137 |         
+ 138 |         ax1.set_xlabel('X (mm)')
+ 139 |         ax1.set_ylabel('Y (mm)')
+ 140 |         ax1.set_zlabel('Z (mm)')
+ 141 |         ax1.set_title('Cross Sections')
+ 142 |         
+ 143 |         # Plot cross section shapes in 2D
+ 144 |         ax2 = fig.add_subplot(122)
+ 145 |         
+ 146 |         for i, section in enumerate(cross_sections):
+ 147 |             # Project onto plane perpendicular to centerline
+ 148 |             points = np.array(section['points'])
+ 149 |             center = section['center']
+ 150 |             
+ 151 |             # Simple 2D projection
+ 152 |             local_x = points[:, 0] - center[0]
+ 153 |             local_y = points[:, 2] - center[2]
+ 154 |             
+ 155 |             color = plt.cm.viridis(i / len(cross_sections))
+ 156 |             ax2.plot(local_x, local_y, color=color, 
+ 157 |                     label=f'Turn {section["phi"]/(2*np.pi):.2f}')
+ 158 |         
+ 159 |         ax2.set_xlabel('Width (mm)')
+ 160 |         ax2.set_ylabel('Height (mm)')
+ 161 |         ax2.set_title('Cross Section Shapes')
+ 162 |         ax2.axis('equal')
+ 163 |         ax2.grid(True, alpha=0.3)
+ 164 |         ax2.legend()
+ 165 |         
+ 166 |         plt.tight_layout()
+ 167 |         return fig
+ 168 |     
+ 169 |     def create_animation(self, filename='cochlea_rotation.gif', duration=10):
+ 170 |         """
+ 171 |         Create rotating animation of the 3D model.
+ 172 |         
+ 173 |         Args:
+ 174 |             filename: Output filename
+ 175 |             duration: Animation duration in seconds
+ 176 |         """
+ 177 |         geometry = self.model.generate_geometry()
+ 178 |         
+ 179 |         fig = plt.figure(figsize=(8, 8))
+ 180 |         ax = fig.add_subplot(111, projection='3d')
+ 181 |         
+ 182 |         # Set up the plot
+ 183 |         ax.plot([0, 0], [0, 0], 
+ 184 |                [geometry['centerline'][2, 0] - 1, geometry['centerline'][2, -1] + 1],
+ 185 |                color='gray', linewidth=5, alpha=0.6)
+ 186 |         
+ 187 |         ax.plot_surface(geometry['scala']['x'], 
+ 188 |                        geometry['scala']['y'], 
+ 189 |                        geometry['scala']['z'],
+ 190 |                        alpha=0.3, cmap='winter', edgecolor='none')
+ 191 |         
+ 192 |         ax.plot(geometry['centerline'][0], 
+ 193 |                geometry['centerline'][1], 
+ 194 |                geometry['centerline'][2],
+ 195 |                'k-', linewidth=3)
+ 196 |         
+ 197 |         ax.set_xlabel('X (mm)')
+ 198 |         ax.set_ylabel('Y (mm)')
+ 199 |         ax.set_zlabel('Z (mm)')
+ 200 |         ax.set_title('3D Cochlea Model')
+ 201 |         
+ 202 |         # Animation function
+ 203 |         def rotate(frame):
+ 204 |             ax.view_init(elev=15, azim=frame)
+ 205 |             return ax,
+ 206 |         
+ 207 |         # Create animation
+ 208 |         frames = np.linspace(0, 360, int(duration * 30))
+ 209 |         anim = animation.FuncAnimation(fig, rotate, frames=frames, 
+ 210 |                                      interval=1000/30, blit=False)
+ 211 |         
+ 212 |         # Save animation
+ 213 |         anim.save(filename, writer='pillow', fps=30)
+ 214 |         plt.close()
+ 215 |         
+ 216 |         print(f"Animation saved to {filename}")
+ 217 |     
+ 218 |     def plot_complete_analysis(self):
+ 219 |         """Create comprehensive visualization with all plots."""
+ 220 |         fig = plt.figure(figsize=(16, 12))
+ 221 |         
+ 222 |         geometry = self.model.generate_geometry()
+ 223 |         
+ 224 |         # Calculate lengths
+ 225 |         length_with_height = self.model.calculate_length(with_height=True)
+ 226 |         length_without_height = self.model.calculate_length(with_height=False)
+ 227 |         
+ 228 |         # Text summary
+ 229 |         ax_text = fig.add_subplot(3, 3, 1)
+ 230 |         ax_text.axis('off')
+ 231 |         summary_text = (
+ 232 |             f"Cochlea Model Summary\n"
+ 233 |             f"{'='*30}\n"
+ 234 |             f"Parameters:\n"
+ 235 |             f"  A1 = {self.model.A[0]:.3f} mm\n"
+ 236 |             f"  B1 = {self.model.A[1]:.3f} mm\n"
+ 237 |             f"  A2 = {self.model.A[2]:.3f} mm\n"
+ 238 |             f"  B2 = {self.model.A[3]:.3f} mm\n\n"
+ 239 |             f"Derived Values:\n"
+ 240 |             f"  Turns: {self.model.n_turns:.3f}\n"
+ 241 |             f"  Length (with height): {length_with_height:.2f} mm\n"
+ 242 |             f"  Length (no height): {length_without_height:.2f} mm"
+ 243 |         )
+ 244 |         ax_text.text(0.1, 0.5, summary_text, fontsize=12, 
+ 245 |                     verticalalignment='center', fontfamily='monospace')
+ 246 |         
+ 247 |         # Parameter plots
+ 248 |         ax1 = fig.add_subplot(3, 3, 2)
+ 249 |         ax1.plot(geometry['turns'], geometry['r_modiolus'], 'b-', linewidth=2)
+ 250 |         ax1.plot([0, 0.25, 0.5, 0.75], self.model.A, 'ro', markersize=8)
+ 251 |         ax1.set_xlabel('Turns')
+ 252 |         ax1.set_ylabel('Distance (mm)')
+ 253 |         ax1.set_title('Radial Distance')
+ 254 |         ax1.grid(True, alpha=0.3)
+ 255 |         
+ 256 |         ax2 = fig.add_subplot(3, 3, 3)
+ 257 |         height = self.model._height_poly(geometry['phi'])
+ 258 |         ax2.plot(geometry['turns'], height, 'g-', linewidth=2)
+ 259 |         ax2.set_xlabel('Turns')
+ 260 |         ax2.set_ylabel('Height (mm)')
+ 261 |         ax2.set_title('Height Profile')
+ 262 |         ax2.grid(True, alpha=0.3)
+ 263 |         
+ 264 |         # 3D views
+ 265 |         ax3 = fig.add_subplot(3, 3, (4, 8), projection='3d')
+ 266 |         ax3.plot([0, 0], [0, 0], 
+ 267 |                 [geometry['centerline'][2, 0] - 1, geometry['centerline'][2, -1] + 1],
+ 268 |                 color='gray', linewidth=5, alpha=0.6)
+ 269 |         ax3.plot_surface(geometry['scala']['x'], 
+ 270 |                         geometry['scala']['y'], 
+ 271 |                         geometry['scala']['z'],
+ 272 |                         alpha=0.3, cmap='winter', edgecolor='none')
+ 273 |         ax3.plot(geometry['centerline'][0], 
+ 274 |                 geometry['centerline'][1], 
+ 275 |                 geometry['centerline'][2],
+ 276 |                 'k-', linewidth=3)
+ 277 |         ax3.set_xlabel('X (mm)')
+ 278 |         ax3.set_ylabel('Y (mm)')
+ 279 |         ax3.set_zlabel('Z (mm)')
+ 280 |         ax3.set_title('3D Model')
+ 281 |         ax3.view_init(elev=15, azim=45)
+ 282 |         
+ 283 |         # Cross sections
+ 284 |         ax4 = fig.add_subplot(3, 3, 9)
+ 285 |         cross_sections = self.model.generate_cross_sections(geometry, num_sections=5)
+ 286 |         for i, section in enumerate(cross_sections):
+ 287 |             points = np.array(section['points'])
+ 288 |             center = section['center']
+ 289 |             local_x = points[:, 0] - center[0]
+ 290 |             local_y = points[:, 2] - center[2]
+ 291 |             color = plt.cm.viridis(i / len(cross_sections))
+ 292 |             ax4.plot(local_x, local_y, color=color, linewidth=2,
+ 293 |                     label=f'{section["phi"]/(2*np.pi):.1f} turns')
+ 294 |         ax4.set_xlabel('Width (mm)')
+ 295 |         ax4.set_ylabel('Height (mm)')
+ 296 |         ax4.set_title('Cross Sections')
+ 297 |         ax4.axis('equal')
+ 298 |         ax4.grid(True, alpha=0.3)
+ 299 |         ax4.legend(fontsize=8)
+ 300 |         
+ 301 |         plt.suptitle('Complete Cochlea Analysis', fontsize=16)
+ 302 |         plt.tight_layout()
+ 303 |         return fig
+
+--------------------------------------------------------------------------------
+FILE: file_documenter.py
+SIZE: 14.5 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | File Documenter
+   3 | Generates a comprehensive documentation file containing the project structure
+   4 | and contents of Python files only in the current directory
+   5 | """
+   6 | 
+   7 | import os
+   8 | from pathlib import Path
+   9 | from datetime import datetime
+  10 | import mimetypes
+  11 | 
+  12 | 
+  13 | class FileDocumenter:
+  14 |     """Document all code files in a project directory."""
+  15 |     
+  16 |     # File extensions to include in tree structure
+  17 |     TREE_EXTENSIONS = {
+  18 |         '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
+  19 |         '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.r',
+  20 |         '.m', '.html', '.css', '.scss', '.sass', '.less', '.xml', '.json',
+  21 |         '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bash',
+  22 |         '.zsh', '.fish', '.ps1', '.bat', '.cmd', '.dockerfile', '.sql',
+  23 |         '.md', '.rst', '.txt', '.csv', '.gitignore', '.env', '.editorconfig'
+  24 |     }
+  25 |     
+  26 |     # File extensions to include content for (Python only)
+  27 |     CONTENT_EXTENSIONS = {'.py'}
+  28 |     
+  29 |     # Directories to skip
+  30 |     SKIP_DIRS = {
+  31 |         '.git', '.svn', '.hg', '__pycache__', 'node_modules', '.idea',
+  32 |         '.vscode', '.vs', 'venv', 've', 'env', '.env', 'build', 'dist',
+  33 |         'target', 'out', 'bin', 'obj', '.pytest_cache', '.mypy_cache',
+  34 |         'coverage', '.coverage', 'htmlcov', '.tox', 'egg-info',
+  35 |         '.DS_Store', 'Thumbs.db'
+  36 |     }
+  37 |     
+  38 |     # Binary file extensions to skip
+  39 |     BINARY_EXTENSIONS = {
+  40 |         '.pyc', '.pyo', '.so', '.dll', '.dylib', '.exe', '.app',
+  41 |         '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico', '.svg',
+  42 |         '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  43 |         '.zip', '.tar', '.gz', '.rar', '.7z', '.dmg', '.iso',
+  44 |         '.mp3', '.mp4', '.avi', '.mov', '.wav', '.flac',
+  45 |         '.ttf', '.otf', '.woff', '.woff2', '.eot'
+  46 |     }
+  47 |     
+  48 |     def __init__(self, root_path=None, output_file='project_documentation.txt'):
+  49 |         """
+  50 |         Initialize documenter.
+  51 |         
+  52 |         Args:
+  53 |             root_path: Root directory to document (default: current directory)
+  54 |             output_file: Output filename
+  55 |         """
+  56 |         self.root_path = Path(root_path) if root_path else Path.cwd()
+  57 |         self.output_file = output_file
+  58 |         self.file_count = 0
+  59 |         self.total_lines = 0
+  60 |         self.file_sizes = {}
+  61 |         self.python_file_count = 0
+  62 |         
+  63 |     def should_include_in_tree(self, file_path):
+  64 |         """Check if file should be included in tree structure."""
+  65 |         file_path = Path(file_path)
+  66 |         
+  67 |         # Skip if in skip directory
+  68 |         for parent in file_path.parents:
+  69 |             if parent.name in self.SKIP_DIRS:
+  70 |                 return False
+  71 |         
+  72 |         # Skip binary files
+  73 |         if file_path.suffix.lower() in self.BINARY_EXTENSIONS:
+  74 |             return False
+  75 |         
+  76 |         # Include if has code extension
+  77 |         if file_path.suffix.lower() in self.TREE_EXTENSIONS:
+  78 |             return True
+  79 |         
+  80 |         # Include if no extension but might be script (Dockerfile, Makefile, etc.)
+  81 |         if not file_path.suffix and file_path.name in ['Dockerfile', 'Makefile', 'Rakefile']:
+  82 |             return True
+  83 |         
+  84 |         return False
+  85 |     
+  86 |     def should_include_content(self, file_path):
+  87 |         """Check if file content should be included in documentation."""
+  88 |         file_path = Path(file_path)
+  89 |         return file_path.suffix.lower() in self.CONTENT_EXTENSIONS
+  90 |     
+  91 |     def get_file_tree(self, start_path=None, prefix="", is_last=True):
+  92 |         """Generate visual file tree structure."""
+  93 |         if start_path is None:
+  94 |             start_path = self.root_path
+  95 |         
+  96 |         tree_lines = []
+  97 |         start_path = Path(start_path)
+  98 |         
+  99 |         # Add current directory
+ 100 |         if start_path == self.root_path:
+ 101 |             tree_lines.append(f"{start_path.name}/")
+ 102 |         else:
+ 103 |             connector = "└── " if is_last else "├── "
+ 104 |             tree_lines.append(f"{prefix}{connector}{start_path.name}/")
+ 105 |         
+ 106 |         # Get all items in directory
+ 107 |         try:
+ 108 |             items = sorted(start_path.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+ 109 |         except PermissionError:
+ 110 |             return tree_lines
+ 111 |         
+ 112 |         # Filter directories
+ 113 |         dirs = [item for item in items if item.is_dir() and item.name not in self.SKIP_DIRS]
+ 114 |         files = [item for item in items if item.is_file() and self.should_include_in_tree(item)]
+ 115 |         
+ 116 |         # Process directories
+ 117 |         for i, dir_path in enumerate(dirs):
+ 118 |             is_last_dir = (i == len(dirs) - 1) and len(files) == 0
+ 119 |             if start_path == self.root_path:
+ 120 |                 sub_prefix = ""
+ 121 |             else:
+ 122 |                 sub_prefix = prefix + ("    " if is_last else "│   ")
+ 123 |             
+ 124 |             tree_lines.extend(self.get_file_tree(dir_path, sub_prefix, is_last_dir))
+ 125 |         
+ 126 |         # Process files
+ 127 |         for i, file_path in enumerate(files):
+ 128 |             is_last_file = i == len(files) - 1
+ 129 |             connector = "└── " if is_last_file else "├── "
+ 130 |             
+ 131 |             if start_path == self.root_path:
+ 132 |                 file_prefix = connector
+ 133 |             else:
+ 134 |                 file_prefix = prefix + ("    " if is_last else "│   ") + connector
+ 135 |             
+ 136 |             # Add file size
+ 137 |             size = file_path.stat().st_size
+ 138 |             size_str = self._format_size(size)
+ 139 |             
+ 140 |             # Mark Python files with an indicator
+ 141 |             if self.should_include_content(file_path):
+ 142 |                 tree_lines.append(f"{file_prefix}{file_path.name} ({size_str}) *")
+ 143 |             else:
+ 144 |                 tree_lines.append(f"{file_prefix}{file_path.name} ({size_str})")
+ 145 |             
+ 146 |             self.file_sizes[str(file_path.relative_to(self.root_path))] = size
+ 147 |         
+ 148 |         return tree_lines
+ 149 |     
+ 150 |     def _format_size(self, size):
+ 151 |         """Format file size in human-readable format."""
+ 152 |         for unit in ['B', 'KB', 'MB', 'GB']:
+ 153 |             if size < 1024.0:
+ 154 |                 return f"{size:.1f} {unit}"
+ 155 |             size /= 1024.0
+ 156 |         return f"{size:.1f} TB"
+ 157 |     
+ 158 |     def get_file_content(self, file_path):
+ 159 |         """Get content of a file with error handling."""
+ 160 |         try:
+ 161 |             # Try to detect encoding
+ 162 |             with open(file_path, 'rb') as f:
+ 163 |                 raw_data = f.read()
+ 164 |             
+ 165 |             # Try common encodings
+ 166 |             for encoding in ['utf-8', 'latin-1', 'cp1252']:
+ 167 |                 try:
+ 168 |                     return raw_data.decode(encoding)
+ 169 |                 except UnicodeDecodeError:
+ 170 |                     continue
+ 171 |             
+ 172 |             return "[Binary or unreadable file]"
+ 173 |             
+ 174 |         except Exception as e:
+ 175 |             return f"[Error reading file: {e}]"
+ 176 |     
+ 177 |     def document_project(self):
+ 178 |         """Generate complete project documentation."""
+ 179 |         output_lines = []
+ 180 |         
+ 181 |         # Header
+ 182 |         output_lines.append("=" * 80)
+ 183 |         output_lines.append("PROJECT DOCUMENTATION")
+ 184 |         output_lines.append("=" * 80)
+ 185 |         output_lines.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+ 186 |         output_lines.append(f"Root Directory: {self.root_path.absolute()}")
+ 187 |         output_lines.append("=" * 80)
+ 188 |         output_lines.append("")
+ 189 |         
+ 190 |         # File tree
+ 191 |         output_lines.append("FILE STRUCTURE:")
+ 192 |         output_lines.append("-" * 40)
+ 193 |         output_lines.append("(* indicates Python files with content included)")
+ 194 |         output_lines.append("")
+ 195 |         tree_lines = self.get_file_tree()
+ 196 |         output_lines.extend(tree_lines)
+ 197 |         output_lines.append("")
+ 198 |         
+ 199 |         # File contents (Python files only)
+ 200 |         output_lines.append("=" * 80)
+ 201 |         output_lines.append("PYTHON FILE CONTENTS:")
+ 202 |         output_lines.append("=" * 80)
+ 203 |         output_lines.append("")
+ 204 |         
+ 205 |         # Walk through all files
+ 206 |         for root, dirs, files in os.walk(self.root_path):
+ 207 |             # Skip unwanted directories
+ 208 |             dirs[:] = [d for d in dirs if d not in self.SKIP_DIRS]
+ 209 |             
+ 210 |             root_path = Path(root)
+ 211 |             
+ 212 |             for file_name in sorted(files):
+ 213 |                 file_path = root_path / file_name
+ 214 |                 
+ 215 |                 # Count all files in tree
+ 216 |                 if self.should_include_in_tree(file_path):
+ 217 |                     self.file_count += 1
+ 218 |                 
+ 219 |                 # Only include content for Python files
+ 220 |                 if not self.should_include_content(file_path):
+ 221 |                     continue
+ 222 |                 
+ 223 |                 self.python_file_count += 1
+ 224 |                 rel_path = file_path.relative_to(self.root_path)
+ 225 |                 
+ 226 |                 # File header
+ 227 |                 output_lines.append("-" * 80)
+ 228 |                 output_lines.append(f"FILE: {rel_path}")
+ 229 |                 output_lines.append(f"SIZE: {self._format_size(self.file_sizes.get(str(rel_path), 0))}")
+ 230 |                 output_lines.append("-" * 80)
+ 231 |                 
+ 232 |                 # File content
+ 233 |                 content = self.get_file_content(file_path)
+ 234 |                 lines = content.splitlines()
+ 235 |                 self.total_lines += len(lines)
+ 236 |                 
+ 237 |                 # Add line numbers
+ 238 |                 for i, line in enumerate(lines, 1):
+ 239 |                     output_lines.append(f"{i:4d} | {line}")
+ 240 |                 
+ 241 |                 output_lines.append("")
+ 242 |         
+ 243 |         # Summary
+ 244 |         output_lines.append("=" * 80)
+ 245 |         output_lines.append("SUMMARY:")
+ 246 |         output_lines.append("-" * 40)
+ 247 |         output_lines.append(f"Total Files in Tree: {self.file_count}")
+ 248 |         output_lines.append(f"Python Files with Content: {self.python_file_count}")
+ 249 |         output_lines.append(f"Total Python Lines: {self.total_lines:,}")
+ 250 |         total_size = sum(self.file_sizes.values())
+ 251 |         output_lines.append(f"Total Project Size: {self._format_size(total_size)}")
+ 252 |         output_lines.append("=" * 80)
+ 253 |         
+ 254 |         # Write to file
+ 255 |         with open(self.output_file, 'w', encoding='utf-8') as f:
+ 256 |             f.write('\n'.join(output_lines))
+ 257 |         
+ 258 |         print(f"\nDocumentation generated: {self.output_file}")
+ 259 |         print(f"Total files in tree: {self.file_count}")
+ 260 |         print(f"Python files documented: {self.python_file_count}")
+ 261 |         print(f"Total Python lines: {self.total_lines:,}")
+ 262 |         
+ 263 |         return self.output_file
+ 264 |     
+ 265 |     def generate_summary_only(self):
+ 266 |         """Generate a summary without file contents."""
+ 267 |         output_lines = []
+ 268 |         
+ 269 |         # Header
+ 270 |         output_lines.append("=" * 80)
+ 271 |         output_lines.append("PROJECT SUMMARY")
+ 272 |         output_lines.append("=" * 80)
+ 273 |         output_lines.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+ 274 |         output_lines.append(f"Root Directory: {self.root_path.absolute()}")
+ 275 |         output_lines.append("=" * 80)
+ 276 |         output_lines.append("")
+ 277 |         
+ 278 |         # File tree
+ 279 |         output_lines.append("FILE STRUCTURE:")
+ 280 |         output_lines.append("-" * 40)
+ 281 |         output_lines.append("(* indicates Python files)")
+ 282 |         output_lines.append("")
+ 283 |         tree_lines = self.get_file_tree()
+ 284 |         output_lines.extend(tree_lines)
+ 285 |         output_lines.append("")
+ 286 |         
+ 287 |         # Statistics by file type
+ 288 |         file_stats = {}
+ 289 |         python_stats = {'count': 0, 'size': 0, 'lines': 0}
+ 290 |         
+ 291 |         for root, dirs, files in os.walk(self.root_path):
+ 292 |             dirs[:] = [d for d in dirs if d not in self.SKIP_DIRS]
+ 293 |             root_path = Path(root)
+ 294 |             
+ 295 |             for file_name in files:
+ 296 |                 file_path = root_path / file_name
+ 297 |                 if self.should_include_in_tree(file_path):
+ 298 |                     ext = file_path.suffix.lower() or 'no extension'
+ 299 |                     if ext not in file_stats:
+ 300 |                         file_stats[ext] = {'count': 0, 'size': 0}
+ 301 |                     file_stats[ext]['count'] += 1
+ 302 |                     file_stats[ext]['size'] += file_path.stat().st_size
+ 303 |                     
+ 304 |                     # Track Python files separately
+ 305 |                     if ext == '.py':
+ 306 |                         python_stats['count'] += 1
+ 307 |                         python_stats['size'] += file_path.stat().st_size
+ 308 |                         # Count lines in Python files
+ 309 |                         content = self.get_file_content(file_path)
+ 310 |                         python_stats['lines'] += len(content.splitlines())
+ 311 |         
+ 312 |         # Summary statistics
+ 313 |         output_lines.append("=" * 80)
+ 314 |         output_lines.append("FILE TYPE STATISTICS:")
+ 315 |         output_lines.append("-" * 40)
+ 316 |         
+ 317 |         for ext, stats in sorted(file_stats.items()):
+ 318 |             output_lines.append(f"{ext:15} {stats['count']:4d} files  {self._format_size(stats['size']):>10}")
+ 319 |         
+ 320 |         output_lines.append("")
+ 321 |         output_lines.append("PYTHON FILE STATISTICS:")
+ 322 |         output_lines.append("-" * 40)
+ 323 |         output_lines.append(f"Python Files: {python_stats['count']}")
+ 324 |         output_lines.append(f"Total Size: {self._format_size(python_stats['size'])}")
+ 325 |         output_lines.append(f"Total Lines: {python_stats['lines']:,}")
+ 326 |         
+ 327 |         output_lines.append("=" * 80)
+ 328 |         
+ 329 |         summary_file = self.output_file.replace('.txt', '_summary.txt')
+ 330 |         with open(summary_file, 'w', encoding='utf-8') as f:
+ 331 |             f.write('\n'.join(output_lines))
+ 332 |         
+ 333 |         print(f"\nSummary generated: {summary_file}")
+ 334 |         return summary_file
+ 335 | 
+ 336 | 
+ 337 | def main():
+ 338 |     """Main function for command line usage."""
+ 339 |     import argparse
+ 340 |     
+ 341 |     parser = argparse.ArgumentParser(description='Document Python files in a project')
+ 342 |     parser.add_argument('path', nargs='?', default='.',
+ 343 |                       help='Path to document (default: current directory)')
+ 344 |     parser.add_argument('-o', '--output', default='project_documentation.txt',
+ 345 |                       help='Output filename')
+ 346 |     parser.add_argument('-s', '--summary', action='store_true',
+ 347 |                       help='Generate summary only (no file contents)')
+ 348 |     parser.add_argument('--include-content', nargs='+',
+ 349 |                       help='Additional file extensions to include content for (e.g., .js .ts)')
+ 350 |     parser.add_argument('--exclude-tree', nargs='+',
+ 351 |                       help='File extensions to exclude from tree')
+ 352 |     
+ 353 |     args = parser.parse_args()
+ 354 |     
+ 355 |     # Create documenter
+ 356 |     documenter = FileDocumenter(args.path, args.output)
+ 357 |     
+ 358 |     # Add custom content extensions
+ 359 |     if args.include_content:
+ 360 |         for ext in args.include_content:
+ 361 |             if not ext.startswith('.'):
+ 362 |                 ext = '.' + ext
+ 363 |             documenter.CONTENT_EXTENSIONS.add(ext.lower())
+ 364 |     
+ 365 |     # Remove extensions from tree
+ 366 |     if args.exclude_tree:
+ 367 |         for ext in args.exclude_tree:
+ 368 |             if not ext.startswith('.'):
+ 369 |                 ext = '.' + ext
+ 370 |             documenter.TREE_EXTENSIONS.discard(ext.lower())
+ 371 |     
+ 372 |     # Generate documentation
+ 373 |     if args.summary:
+ 374 |         documenter.generate_summary_only()
+ 375 |     else:
+ 376 |         documenter.document_project()
+ 377 | 
+ 378 | 
+ 379 | if __name__ == "__main__":
+ 380 |     main()
+
+--------------------------------------------------------------------------------
+FILE: main.py
+SIZE: 4.5 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | Main Script for Cochlea Model Generation - Simplified Version
+   3 | Creates cochlea model with full circle cross sections only
+   4 | """
+   5 | 
+   6 | import argparse
+   7 | import sys
+   8 | from pathlib import Path
+   9 | 
+  10 | from cochlea_model import CochleaModel
+  11 | from cochlea_visualization import CochleaVisualizer
+  12 | from cochlea_export import CochleaExporter
+  13 | 
+  14 | 
+  15 | def main():
+  16 |     """Main function to run cochlea model generation."""
+  17 |     
+  18 |     # Parse command line arguments
+  19 |     parser = argparse.ArgumentParser(description='Generate 3D cochlea model for CAD')
+  20 |     parser.add_argument('--mode', choices=['mean', 'random', 'custom'], default='mean',
+  21 |                       help='Parameter generation mode')
+  22 |     parser.add_argument('--parameters', nargs=4, type=float, metavar=('A1', 'B1', 'A2', 'B2'),
+  23 |                       help='Custom parameters (requires --mode custom)')
+  24 |     parser.add_argument('--export-dir', default='cochlea_output',
+  25 |                       help='Directory for exported files')
+  26 |     parser.add_argument('--no-plot', action='store_true',
+  27 |                       help='Skip visualization plots')
+  28 |     parser.add_argument('--save-plots', action='store_true',
+  29 |                       help='Save plots as PNG files')
+  30 |     parser.add_argument('--keep-existing', action='store_true',
+  31 |                       help='Keep existing files instead of replacing them')
+  32 |     
+  33 |     args = parser.parse_args()
+  34 |     
+  35 |     # Validate arguments
+  36 |     if args.mode == 'custom' and args.parameters is None:
+  37 |         parser.error("--mode custom requires --parameters")
+  38 |     if args.mode != 'custom' and args.parameters is not None:
+  39 |         parser.error("--parameters can only be used with --mode custom")
+  40 |     
+  41 |     print("="*60)
+  42 |     print("COCHLEA MODEL GENERATOR - SIMPLIFIED VERSION")
+  43 |     print("="*60)
+  44 |     
+  45 |     try:
+  46 |         # Create model
+  47 |         if args.mode == 'custom':
+  48 |             model = CochleaModel(parameters=args.parameters)
+  49 |         else:
+  50 |             model = CochleaModel(mode=args.mode)
+  51 |         
+  52 |         # Visualization
+  53 |         if not args.no_plot:
+  54 |             print("\nGenerating visualizations...")
+  55 |             visualizer = CochleaVisualizer(model)
+  56 |             
+  57 |             # Create plots
+  58 |             fig1 = visualizer.plot_parameters()
+  59 |             fig2, ax = visualizer.plot_3d_model()
+  60 |             fig3 = visualizer.plot_cross_sections()
+  61 |             
+  62 |             if args.save_plots:
+  63 |                 plot_dir = Path(args.export_dir) / 'plots'
+  64 |                 plot_dir.mkdir(parents=True, exist_ok=True)
+  65 |                 
+  66 |                 fig1.savefig(plot_dir / 'parameters.png', dpi=150, bbox_inches='tight')
+  67 |                 fig2.savefig(plot_dir / '3d_model.png', dpi=150, bbox_inches='tight')
+  68 |                 fig3.savefig(plot_dir / 'cross_sections.png', dpi=150, bbox_inches='tight')
+  69 |                 print(f"Plots saved to {plot_dir}")
+  70 |             
+  71 |             # Show plots
+  72 |             import matplotlib.pyplot as plt
+  73 |             plt.show()
+  74 |         
+  75 |         # Export files
+  76 |         print("\nExporting files...")
+  77 |         exporter = CochleaExporter(model)
+  78 |         # Use replace_existing based on --keep-existing flag
+  79 |         results = exporter.export_all(args.export_dir, replace_existing=not args.keep_existing)
+  80 |         
+  81 |         # Print lengths
+  82 |         print(f"\nModel Statistics:")
+  83 |         print(f"  Number of turns: {model.n_turns:.2f}")
+  84 |         print(f"  Length with height: {model.calculate_length(True):.2f} mm")
+  85 |         print(f"  Length without height: {model.calculate_length(False):.2f} mm")
+  86 |         
+  87 |         print("\nProcess completed successfully!")
+  88 |         
+  89 |     except Exception as e:
+  90 |         print(f"\nError: {e}", file=sys.stderr)
+  91 |         return 1
+  92 |     
+  93 |     return 0
+  94 | 
+  95 | 
+  96 | def quick_generate(parameters=None, mode='mean', export_dir='cochlea_output', replace_existing=True):
+  97 |     """
+  98 |     Quick generation function for script usage.
+  99 |     
+ 100 |     Args:
+ 101 |         parameters: Custom parameters [A1, B1, A2, B2]
+ 102 |         mode: 'mean' or 'random' if parameters is None
+ 103 |         export_dir: Output directory
+ 104 |         replace_existing: If True, replace existing files
+ 105 |     
+ 106 |     Example:
+ 107 |         from main import quick_generate
+ 108 |         quick_generate(mode='random')
+ 109 |         # or to keep existing files:
+ 110 |         quick_generate(mode='mean', replace_existing=False)
+ 111 |     """
+ 112 |     # Create model
+ 113 |     model = CochleaModel(parameters=parameters, mode=mode)
+ 114 |     
+ 115 |     # Visualize
+ 116 |     visualizer = CochleaVisualizer(model)
+ 117 |     visualizer.plot_3d_model()
+ 118 |     
+ 119 |     # Export
+ 120 |     exporter = CochleaExporter(model)
+ 121 |     exporter.export_all(export_dir, replace_existing)
+ 122 |     
+ 123 |     # Show plots
+ 124 |     import matplotlib.pyplot as plt
+ 125 |     plt.show()
+ 126 |     
+ 127 |     return model
+ 128 | 
+ 129 | 
+ 130 | if __name__ == "__main__":
+ 131 |     sys.exit(main())
+
+--------------------------------------------------------------------------------
+FILE: Fusion360_scripts/ImportCochleaCrossSections.py
+SIZE: 14.5 KB
+--------------------------------------------------------------------------------
+   1 | """
+   2 | File Documenter
+   3 | Generates a comprehensive documentation file containing the project structure
+   4 | and contents of Python files only in the current directory
+   5 | """
+   6 | 
+   7 | import os
+   8 | from pathlib import Path
+   9 | from datetime import datetime
+  10 | import mimetypes
+  11 | 
+  12 | 
+  13 | class FileDocumenter:
+  14 |     """Document all code files in a project directory."""
+  15 |     
+  16 |     # File extensions to include in tree structure
+  17 |     TREE_EXTENSIONS = {
+  18 |         '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
+  19 |         '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.r',
+  20 |         '.m', '.html', '.css', '.scss', '.sass', '.less', '.xml', '.json',
+  21 |         '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bash',
+  22 |         '.zsh', '.fish', '.ps1', '.bat', '.cmd', '.dockerfile', '.sql',
+  23 |         '.md', '.rst', '.txt', '.csv', '.gitignore', '.env', '.editorconfig'
+  24 |     }
+  25 |     
+  26 |     # File extensions to include content for (Python only)
+  27 |     CONTENT_EXTENSIONS = {'.py'}
+  28 |     
+  29 |     # Directories to skip
+  30 |     SKIP_DIRS = {
+  31 |         '.git', '.svn', '.hg', '__pycache__', 'node_modules', '.idea',
+  32 |         '.vscode', '.vs', 'venv', 've', 'env', '.env', 'build', 'dist',
+  33 |         'target', 'out', 'bin', 'obj', '.pytest_cache', '.mypy_cache',
+  34 |         'coverage', '.coverage', 'htmlcov', '.tox', 'egg-info',
+  35 |         '.DS_Store', 'Thumbs.db'
+  36 |     }
+  37 |     
+  38 |     # Binary file extensions to skip
+  39 |     BINARY_EXTENSIONS = {
+  40 |         '.pyc', '.pyo', '.so', '.dll', '.dylib', '.exe', '.app',
+  41 |         '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico', '.svg',
+  42 |         '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  43 |         '.zip', '.tar', '.gz', '.rar', '.7z', '.dmg', '.iso',
+  44 |         '.mp3', '.mp4', '.avi', '.mov', '.wav', '.flac',
+  45 |         '.ttf', '.otf', '.woff', '.woff2', '.eot'
+  46 |     }
+  47 |     
+  48 |     def __init__(self, root_path=None, output_file='project_documentation.txt'):
+  49 |         """
+  50 |         Initialize documenter.
+  51 |         
+  52 |         Args:
+  53 |             root_path: Root directory to document (default: current directory)
+  54 |             output_file: Output filename
+  55 |         """
+  56 |         self.root_path = Path(root_path) if root_path else Path.cwd()
+  57 |         self.output_file = output_file
+  58 |         self.file_count = 0
+  59 |         self.total_lines = 0
+  60 |         self.file_sizes = {}
+  61 |         self.python_file_count = 0
+  62 |         
+  63 |     def should_include_in_tree(self, file_path):
+  64 |         """Check if file should be included in tree structure."""
+  65 |         file_path = Path(file_path)
+  66 |         
+  67 |         # Skip if in skip directory
+  68 |         for parent in file_path.parents:
+  69 |             if parent.name in self.SKIP_DIRS:
+  70 |                 return False
+  71 |         
+  72 |         # Skip binary files
+  73 |         if file_path.suffix.lower() in self.BINARY_EXTENSIONS:
+  74 |             return False
+  75 |         
+  76 |         # Include if has code extension
+  77 |         if file_path.suffix.lower() in self.TREE_EXTENSIONS:
+  78 |             return True
+  79 |         
+  80 |         # Include if no extension but might be script (Dockerfile, Makefile, etc.)
+  81 |         if not file_path.suffix and file_path.name in ['Dockerfile', 'Makefile', 'Rakefile']:
+  82 |             return True
+  83 |         
+  84 |         return False
+  85 |     
+  86 |     def should_include_content(self, file_path):
+  87 |         """Check if file content should be included in documentation."""
+  88 |         file_path = Path(file_path)
+  89 |         return file_path.suffix.lower() in self.CONTENT_EXTENSIONS
+  90 |     
+  91 |     def get_file_tree(self, start_path=None, prefix="", is_last=True):
+  92 |         """Generate visual file tree structure."""
+  93 |         if start_path is None:
+  94 |             start_path = self.root_path
+  95 |         
+  96 |         tree_lines = []
+  97 |         start_path = Path(start_path)
+  98 |         
+  99 |         # Add current directory
+ 100 |         if start_path == self.root_path:
+ 101 |             tree_lines.append(f"{start_path.name}/")
+ 102 |         else:
+ 103 |             connector = "└── " if is_last else "├── "
+ 104 |             tree_lines.append(f"{prefix}{connector}{start_path.name}/")
+ 105 |         
+ 106 |         # Get all items in directory
+ 107 |         try:
+ 108 |             items = sorted(start_path.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+ 109 |         except PermissionError:
+ 110 |             return tree_lines
+ 111 |         
+ 112 |         # Filter directories
+ 113 |         dirs = [item for item in items if item.is_dir() and item.name not in self.SKIP_DIRS]
+ 114 |         files = [item for item in items if item.is_file() and self.should_include_in_tree(item)]
+ 115 |         
+ 116 |         # Process directories
+ 117 |         for i, dir_path in enumerate(dirs):
+ 118 |             is_last_dir = (i == len(dirs) - 1) and len(files) == 0
+ 119 |             if start_path == self.root_path:
+ 120 |                 sub_prefix = ""
+ 121 |             else:
+ 122 |                 sub_prefix = prefix + ("    " if is_last else "│   ")
+ 123 |             
+ 124 |             tree_lines.extend(self.get_file_tree(dir_path, sub_prefix, is_last_dir))
+ 125 |         
+ 126 |         # Process files
+ 127 |         for i, file_path in enumerate(files):
+ 128 |             is_last_file = i == len(files) - 1
+ 129 |             connector = "└── " if is_last_file else "├── "
+ 130 |             
+ 131 |             if start_path == self.root_path:
+ 132 |                 file_prefix = connector
+ 133 |             else:
+ 134 |                 file_prefix = prefix + ("    " if is_last else "│   ") + connector
+ 135 |             
+ 136 |             # Add file size
+ 137 |             size = file_path.stat().st_size
+ 138 |             size_str = self._format_size(size)
+ 139 |             
+ 140 |             # Mark Python files with an indicator
+ 141 |             if self.should_include_content(file_path):
+ 142 |                 tree_lines.append(f"{file_prefix}{file_path.name} ({size_str}) *")
+ 143 |             else:
+ 144 |                 tree_lines.append(f"{file_prefix}{file_path.name} ({size_str})")
+ 145 |             
+ 146 |             self.file_sizes[str(file_path.relative_to(self.root_path))] = size
+ 147 |         
+ 148 |         return tree_lines
+ 149 |     
+ 150 |     def _format_size(self, size):
+ 151 |         """Format file size in human-readable format."""
+ 152 |         for unit in ['B', 'KB', 'MB', 'GB']:
+ 153 |             if size < 1024.0:
+ 154 |                 return f"{size:.1f} {unit}"
+ 155 |             size /= 1024.0
+ 156 |         return f"{size:.1f} TB"
+ 157 |     
+ 158 |     def get_file_content(self, file_path):
+ 159 |         """Get content of a file with error handling."""
+ 160 |         try:
+ 161 |             # Try to detect encoding
+ 162 |             with open(file_path, 'rb') as f:
+ 163 |                 raw_data = f.read()
+ 164 |             
+ 165 |             # Try common encodings
+ 166 |             for encoding in ['utf-8', 'latin-1', 'cp1252']:
+ 167 |                 try:
+ 168 |                     return raw_data.decode(encoding)
+ 169 |                 except UnicodeDecodeError:
+ 170 |                     continue
+ 171 |             
+ 172 |             return "[Binary or unreadable file]"
+ 173 |             
+ 174 |         except Exception as e:
+ 175 |             return f"[Error reading file: {e}]"
+ 176 |     
+ 177 |     def document_project(self):
+ 178 |         """Generate complete project documentation."""
+ 179 |         output_lines = []
+ 180 |         
+ 181 |         # Header
+ 182 |         output_lines.append("=" * 80)
+ 183 |         output_lines.append("PROJECT DOCUMENTATION")
+ 184 |         output_lines.append("=" * 80)
+ 185 |         output_lines.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+ 186 |         output_lines.append(f"Root Directory: {self.root_path.absolute()}")
+ 187 |         output_lines.append("=" * 80)
+ 188 |         output_lines.append("")
+ 189 |         
+ 190 |         # File tree
+ 191 |         output_lines.append("FILE STRUCTURE:")
+ 192 |         output_lines.append("-" * 40)
+ 193 |         output_lines.append("(* indicates Python files with content included)")
+ 194 |         output_lines.append("")
+ 195 |         tree_lines = self.get_file_tree()
+ 196 |         output_lines.extend(tree_lines)
+ 197 |         output_lines.append("")
+ 198 |         
+ 199 |         # File contents (Python files only)
+ 200 |         output_lines.append("=" * 80)
+ 201 |         output_lines.append("PYTHON FILE CONTENTS:")
+ 202 |         output_lines.append("=" * 80)
+ 203 |         output_lines.append("")
+ 204 |         
+ 205 |         # Walk through all files
+ 206 |         for root, dirs, files in os.walk(self.root_path):
+ 207 |             # Skip unwanted directories
+ 208 |             dirs[:] = [d for d in dirs if d not in self.SKIP_DIRS]
+ 209 |             
+ 210 |             root_path = Path(root)
+ 211 |             
+ 212 |             for file_name in sorted(files):
+ 213 |                 file_path = root_path / file_name
+ 214 |                 
+ 215 |                 # Count all files in tree
+ 216 |                 if self.should_include_in_tree(file_path):
+ 217 |                     self.file_count += 1
+ 218 |                 
+ 219 |                 # Only include content for Python files
+ 220 |                 if not self.should_include_content(file_path):
+ 221 |                     continue
+ 222 |                 
+ 223 |                 self.python_file_count += 1
+ 224 |                 rel_path = file_path.relative_to(self.root_path)
+ 225 |                 
+ 226 |                 # File header
+ 227 |                 output_lines.append("-" * 80)
+ 228 |                 output_lines.append(f"FILE: {rel_path}")
+ 229 |                 output_lines.append(f"SIZE: {self._format_size(self.file_sizes.get(str(rel_path), 0))}")
+ 230 |                 output_lines.append("-" * 80)
+ 231 |                 
+ 232 |                 # File content
+ 233 |                 content = self.get_file_content(file_path)
+ 234 |                 lines = content.splitlines()
+ 235 |                 self.total_lines += len(lines)
+ 236 |                 
+ 237 |                 # Add line numbers
+ 238 |                 for i, line in enumerate(lines, 1):
+ 239 |                     output_lines.append(f"{i:4d} | {line}")
+ 240 |                 
+ 241 |                 output_lines.append("")
+ 242 |         
+ 243 |         # Summary
+ 244 |         output_lines.append("=" * 80)
+ 245 |         output_lines.append("SUMMARY:")
+ 246 |         output_lines.append("-" * 40)
+ 247 |         output_lines.append(f"Total Files in Tree: {self.file_count}")
+ 248 |         output_lines.append(f"Python Files with Content: {self.python_file_count}")
+ 249 |         output_lines.append(f"Total Python Lines: {self.total_lines:,}")
+ 250 |         total_size = sum(self.file_sizes.values())
+ 251 |         output_lines.append(f"Total Project Size: {self._format_size(total_size)}")
+ 252 |         output_lines.append("=" * 80)
+ 253 |         
+ 254 |         # Write to file
+ 255 |         with open(self.output_file, 'w', encoding='utf-8') as f:
+ 256 |             f.write('\n'.join(output_lines))
+ 257 |         
+ 258 |         print(f"\nDocumentation generated: {self.output_file}")
+ 259 |         print(f"Total files in tree: {self.file_count}")
+ 260 |         print(f"Python files documented: {self.python_file_count}")
+ 261 |         print(f"Total Python lines: {self.total_lines:,}")
+ 262 |         
+ 263 |         return self.output_file
+ 264 |     
+ 265 |     def generate_summary_only(self):
+ 266 |         """Generate a summary without file contents."""
+ 267 |         output_lines = []
+ 268 |         
+ 269 |         # Header
+ 270 |         output_lines.append("=" * 80)
+ 271 |         output_lines.append("PROJECT SUMMARY")
+ 272 |         output_lines.append("=" * 80)
+ 273 |         output_lines.append(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+ 274 |         output_lines.append(f"Root Directory: {self.root_path.absolute()}")
+ 275 |         output_lines.append("=" * 80)
+ 276 |         output_lines.append("")
+ 277 |         
+ 278 |         # File tree
+ 279 |         output_lines.append("FILE STRUCTURE:")
+ 280 |         output_lines.append("-" * 40)
+ 281 |         output_lines.append("(* indicates Python files)")
+ 282 |         output_lines.append("")
+ 283 |         tree_lines = self.get_file_tree()
+ 284 |         output_lines.extend(tree_lines)
+ 285 |         output_lines.append("")
+ 286 |         
+ 287 |         # Statistics by file type
+ 288 |         file_stats = {}
+ 289 |         python_stats = {'count': 0, 'size': 0, 'lines': 0}
+ 290 |         
+ 291 |         for root, dirs, files in os.walk(self.root_path):
+ 292 |             dirs[:] = [d for d in dirs if d not in self.SKIP_DIRS]
+ 293 |             root_path = Path(root)
+ 294 |             
+ 295 |             for file_name in files:
+ 296 |                 file_path = root_path / file_name
+ 297 |                 if self.should_include_in_tree(file_path):
+ 298 |                     ext = file_path.suffix.lower() or 'no extension'
+ 299 |                     if ext not in file_stats:
+ 300 |                         file_stats[ext] = {'count': 0, 'size': 0}
+ 301 |                     file_stats[ext]['count'] += 1
+ 302 |                     file_stats[ext]['size'] += file_path.stat().st_size
+ 303 |                     
+ 304 |                     # Track Python files separately
+ 305 |                     if ext == '.py':
+ 306 |                         python_stats['count'] += 1
+ 307 |                         python_stats['size'] += file_path.stat().st_size
+ 308 |                         # Count lines in Python files
+ 309 |                         content = self.get_file_content(file_path)
+ 310 |                         python_stats['lines'] += len(content.splitlines())
+ 311 |         
+ 312 |         # Summary statistics
+ 313 |         output_lines.append("=" * 80)
+ 314 |         output_lines.append("FILE TYPE STATISTICS:")
+ 315 |         output_lines.append("-" * 40)
+ 316 |         
+ 317 |         for ext, stats in sorted(file_stats.items()):
+ 318 |             output_lines.append(f"{ext:15} {stats['count']:4d} files  {self._format_size(stats['size']):>10}")
+ 319 |         
+ 320 |         output_lines.append("")
+ 321 |         output_lines.append("PYTHON FILE STATISTICS:")
+ 322 |         output_lines.append("-" * 40)
+ 323 |         output_lines.append(f"Python Files: {python_stats['count']}")
+ 324 |         output_lines.append(f"Total Size: {self._format_size(python_stats['size'])}")
+ 325 |         output_lines.append(f"Total Lines: {python_stats['lines']:,}")
+ 326 |         
+ 327 |         output_lines.append("=" * 80)
+ 328 |         
+ 329 |         summary_file = self.output_file.replace('.txt', '_summary.txt')
+ 330 |         with open(summary_file, 'w', encoding='utf-8') as f:
+ 331 |             f.write('\n'.join(output_lines))
+ 332 |         
+ 333 |         print(f"\nSummary generated: {summary_file}")
+ 334 |         return summary_file
+ 335 | 
+ 336 | 
+ 337 | def main():
+ 338 |     """Main function for command line usage."""
+ 339 |     import argparse
+ 340 |     
+ 341 |     parser = argparse.ArgumentParser(description='Document Python files in a project')
+ 342 |     parser.add_argument('path', nargs='?', default='.',
+ 343 |                       help='Path to document (default: current directory)')
+ 344 |     parser.add_argument('-o', '--output', default='project_documentation.txt',
+ 345 |                       help='Output filename')
+ 346 |     parser.add_argument('-s', '--summary', action='store_true',
+ 347 |                       help='Generate summary only (no file contents)')
+ 348 |     parser.add_argument('--include-content', nargs='+',
+ 349 |                       help='Additional file extensions to include content for (e.g., .js .ts)')
+ 350 |     parser.add_argument('--exclude-tree', nargs='+',
+ 351 |                       help='File extensions to exclude from tree')
+ 352 |     
+ 353 |     args = parser.parse_args()
+ 354 |     
+ 355 |     # Create documenter
+ 356 |     documenter = FileDocumenter(args.path, args.output)
+ 357 |     
+ 358 |     # Add custom content extensions
+ 359 |     if args.include_content:
+ 360 |         for ext in args.include_content:
+ 361 |             if not ext.startswith('.'):
+ 362 |                 ext = '.' + ext
+ 363 |             documenter.CONTENT_EXTENSIONS.add(ext.lower())
+ 364 |     
+ 365 |     # Remove extensions from tree
+ 366 |     if args.exclude_tree:
+ 367 |         for ext in args.exclude_tree:
+ 368 |             if not ext.startswith('.'):
+ 369 |                 ext = '.' + ext
+ 370 |             documenter.TREE_EXTENSIONS.discard(ext.lower())
+ 371 |     
+ 372 |     # Generate documentation
+ 373 |     if args.summary:
+ 374 |         documenter.generate_summary_only()
+ 375 |     else:
+ 376 |         documenter.document_project()
+ 377 | 
+ 378 | 
+ 379 | if __name__ == "__main__":
+ 380 |     main()
+
+--------------------------------------------------------------------------------
+FILE: Fusion360_scripts/cochlear import/cochlear import.py
+SIZE: 640.0 B
+--------------------------------------------------------------------------------
+   1 | """This file acts as the main module for this script."""
+   2 | 
+   3 | import traceback
+   4 | import adsk.core
+   5 | import adsk.fusion
+   6 | # import adsk.cam
+   7 | 
+   8 | # Initialize the global variables for the Application and UserInterface objects.
+   9 | app = adsk.core.Application.get()
+  10 | ui  = app.userInterface
+  11 | 
+  12 | 
+  13 | def run(_context: str):
+  14 |     """This function is called by Fusion when the script is run."""
+  15 | 
+  16 |     try:
+  17 |         # Your code goes here.
+  18 |         ui.messageBox(f'"{app.activeDocument.name}" is the active Document.')
+  19 |     except:  #pylint:disable=bare-except
+  20 |         # Write the error message to the TEXT COMMANDS window.
+  21 |         app.log(f'Failed:\n{traceback.format_exc()}')
+
+--------------------------------------------------------------------------------
+FILE: Fusion360_scripts/Cochlear_Import/Cochlear_Import.py
+SIZE: 640.0 B
+--------------------------------------------------------------------------------
+   1 | """This file acts as the main module for this script."""
+   2 | 
+   3 | import traceback
+   4 | import adsk.core
+   5 | import adsk.fusion
+   6 | # import adsk.cam
+   7 | 
+   8 | # Initialize the global variables for the Application and UserInterface objects.
+   9 | app = adsk.core.Application.get()
+  10 | ui  = app.userInterface
+  11 | 
+  12 | 
+  13 | def run(_context: str):
+  14 |     """This function is called by Fusion when the script is run."""
+  15 | 
+  16 |     try:
+  17 |         # Your code goes here.
+  18 |         ui.messageBox(f'"{app.activeDocument.name}" is the active Document.')
+  19 |     except:  #pylint:disable=bare-except
+  20 |         # Write the error message to the TEXT COMMANDS window.
+  21 |         app.log(f'Failed:\n{traceback.format_exc()}')
+
+================================================================================
+SUMMARY:
+----------------------------------------
+Total Files in Tree: 21
+Python Files with Content: 10
+Total Python Lines: 1,853
+Total Project Size: 168.7 KB
+================================================================================

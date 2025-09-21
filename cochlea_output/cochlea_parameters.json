@@ -1,0 +1,28 @@
+{
+  "parameters": {
+    "A1": 5.97,
+    "B1": 3.95,
+    "A2": 3.26,
+    "B2": 2.85
+  },
+  "derived": {
+    "turns": 2.685805318087241,
+    "length_with_height": 40.99925344586834,
+    "length_without_height": 40.84332192147432
+  },
+  "export_info": {
+    "centerline_mode": "2D",
+    "centerline_points": 100,
+    "cross_sections": 5,
+    "cross_section_positions": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "points_per_circle": 61,
+    "units": "centimeters",
+    "coordinate_system": "2D coordinates (always exported as X,Y,Z)"
+  }
+}
